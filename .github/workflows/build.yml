@@ -1,0 +1,103 @@
+name: Build
+
+on: 
+  push:
+    tags:
+    - '*'
+
+jobs:
+  build:
+    name: Build for ${{ matrix.display_name }}
+    strategy:
+      matrix:
+        include:
+          - display_name: macOS (x86)
+            os: macos-11
+            family: darwin
+            arch: amd64
+          - display_name: Ubuntu (x86)
+            os: ubuntu-20.04
+            family: linux
+            arch: amd64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        run: |
+          git clone https://github.com/newton-blockchain/ton.git && \
+          ( cd ton ; git submodule update --init )
+
+      - name: Install prerequisites
+        if: ${{ matrix.family == 'darwin' }}
+        run: |
+          brew install openssl
+
+      - name: Configure macOS
+        if: ${{ matrix.family == 'darwin' && matrix.arch == 'amd64' }}
+        env:
+          CC: clang
+          CXX: clang++
+          OPENSSL_ROOT_DIR: /usr/local/opt/openssl@3
+        run: |
+          mkdir ton-build && \
+          cd ton-build && \
+          cmake ../ton \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DTON_ARCH= \
+            -Wno-dev \
+            -DOPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3 \
+            -DCMAKE_OSX_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/
+
+      - name: Configure Ubuntu
+        if: ${{ matrix.family == 'linux' }}
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          mkdir ton-build && \
+          cd ton-build && \
+          cmake ../ton
+
+      - name: Build
+        working-directory: ton-build
+        run: |
+          cmake --build . \
+            -t fift \
+            -t func \
+            -t lite-client \
+            -t rldp-http-proxy
+
+      - name: Pack
+        working-directory: ton-build
+        run: |
+          mkdir ../artifacts && \
+          mv crypto/fift ../artifacts/fift-${{ matrix.family }}-${{ matrix.arch }} && \
+          mv crypto/func ../artifacts/func-${{ matrix.family }}-${{ matrix.arch }} && \
+          mv lite-client/lite-client ../artifacts/lite-client-${{ matrix.family }}-${{ matrix.arch }} && \
+          mv rldp-http-proxy/rldp-http-proxy ../artifacts/rldp-http-proxy-${{ matrix.family }}-${{ matrix.arch }} && \
+          cp ../ton/crypto/fift/lib/Asm.fif ../artifacts/Asm.fif
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ton-${{ matrix.family }}-${{ matrix.arch }}
+          path: artifacts/*
+          retention-days: 1
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-20.04
+    needs: build
+    steps:
+      - name: Create directory for artifacts
+        run: mkdir artifacts
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "artifacts/ton-linux-amd64/*,artifacts/ton-darwin-amd64/*"
+          token: ${{ secrets.GITHUB_TOKEN }}
