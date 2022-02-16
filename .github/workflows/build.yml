@@ -24,7 +24,7 @@ jobs:
       - name: Checkout
         run: |
           git clone https://github.com/newton-blockchain/ton.git && \
-          ( cd ton ; git submodule update --init )
+          ( cd ton ; git submodule update --init ; mkdir build )
 
       - name: Install prerequisites
         if: ${{ matrix.family == 'darwin' }}
@@ -33,14 +33,13 @@ jobs:
 
       - name: Configure macOS
         if: ${{ matrix.family == 'darwin' && matrix.arch == 'amd64' }}
+        working-directory: ton/build
         env:
           CC: clang
           CXX: clang++
           OPENSSL_ROOT_DIR: /usr/local/opt/openssl@3
         run: |
-          mkdir ton-build && \
-          cd ton-build && \
-          cmake ../ton \
+          cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DTON_ARCH= \
             -Wno-dev \
@@ -49,16 +48,15 @@ jobs:
 
       - name: Configure Ubuntu
         if: ${{ matrix.family == 'linux' }}
-        env:
-          CC: clang
-          CXX: clang++
+        working-directory: ton/build
         run: |
-          mkdir ton-build && \
-          cd ton-build && \
-          cmake ../ton
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DTON_ARCH= \
+            -Wno-dev
 
       - name: Build
-        working-directory: ton-build
+        working-directory: ton/build
         run: |
           cmake --build . \
             -t fift \
@@ -67,14 +65,14 @@ jobs:
             -t rldp-http-proxy
 
       - name: Pack
-        working-directory: ton-build
+        working-directory: ton/build
         run: |
-          mkdir ../artifacts && \
-          mv crypto/fift ../artifacts/fift-${{ matrix.family }}-${{ matrix.arch }} && \
-          mv crypto/func ../artifacts/func-${{ matrix.family }}-${{ matrix.arch }} && \
-          mv lite-client/lite-client ../artifacts/lite-client-${{ matrix.family }}-${{ matrix.arch }} && \
-          mv rldp-http-proxy/rldp-http-proxy ../artifacts/rldp-http-proxy-${{ matrix.family }}-${{ matrix.arch }} && \
-          cp ../ton/crypto/fift/lib/Asm.fif ../artifacts/Asm.fif
+          mkdir ../../artifacts && \
+          mv crypto/fift ../../artifacts/fift-${{ matrix.family }}-${{ matrix.arch }} && \
+          mv crypto/func ../../artifacts/func-${{ matrix.family }}-${{ matrix.arch }} && \
+          mv lite-client/lite-client ../../artifacts/lite-client-${{ matrix.family }}-${{ matrix.arch }} && \
+          mv rldp-http-proxy/rldp-http-proxy ../../artifacts/rldp-http-proxy-${{ matrix.family }}-${{ matrix.arch }} && \
+          cp ../crypto/fift/lib/Asm.fif ../../artifacts/Asm.fif
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
