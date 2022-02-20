@@ -12,6 +12,7 @@ jobs:
             os: windows-2019
             family: windows
             arch: amd64
+
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -21,22 +22,60 @@ jobs:
           git submodule update --init
           mkdir build
 
+      - name: Check out zlib repository (Windows only)
+        if: ${{ matrix.family == 'windows' }}
+        uses: actions/checkout@v2
+        with:
+          repository: desktop-app/zlib
+          path: zlib
+          ref: 2f6db2d81b3e91b3dcc7673be6cfd412fefd7e63
+
+      - name: Check out vcpkg repository (Windows only)
+        if: ${{ matrix.family == 'windows' }}
+        uses: actions/checkout@v2
+        with:
+          repository: microsoft/vcpkg
+          path: vcpkg
+
+      - name: Setup msbuild.exe (Windows only)
+        if: ${{ matrix.family == 'windows' }}
+        uses: microsoft/setup-msbuild@v1.0.3
+
+      - name: Install vcpkg openssl pthread (Windows only)
+        run: |
+          cd vcpkg
+          bootstrap-vcpkg.bat
+          vcpkg integrate install
+          vcpkg install openssl:x64-windows pthread:x64-windows
+
       - name: Configure Windows
         if: ${{ matrix.family == 'windows' }}
-        working-directory: ton/build
-        env:
-          CC: clang
-          CXX: clang++
+        # working-directory: ton/build
         run: |
+          set root=%cd%
+          echo %root%
+          cd ton/build
           cmake .. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -Wno-dev
+            -DCMAKE_TOOLCHAIN_FILE=%root%/vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DZLIB_FOUND=1 \
+            -DZLIB_INCLUDE_DIR=%root%\zlib \
+            -DZLIB_LIBRARY=%root%\zlib\contrib\vstudio\vc14\x64\ZlibStatReleaseWithoutAsm\zlibstat.lib \
+            -DCMAKE_CXX_FLAGS="/DTD_WINDOWS=1 /EHsc /bigobj /W0" \
+            -DTON_USE_ABSEIL=OFF \
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         working-directory: ton/build
         run: |
           cmake --build . \
+            -t lite-client \
             -t tonlibjson
+
+      - name: Show executables
+        working-directory: ton/build
+        run: |
+          dir *.exe /a-D /S /B
+          dir *.dll /a-D /S /B
 
       - name: Pack
         working-directory: ton/build
