@@ -57,9 +57,8 @@ jobs:
       - name: Build
         working-directory: ton/build
         run: |
-          cmake --build . \
-            -t lite-client \
-            -t tonlibjson
+          cmake --build . -t lite-client
+          cmake --build . -t tonlibjson
 
       - name: Show executables
         working-directory: ton/build
@@ -70,11 +69,11 @@ jobs:
       - name: Pack
         working-directory: ton/build
         run: |
-          mkdir ../../artifacts && \
-          mv crypto/fift ../../artifacts/fift-${{ matrix.family }}-${{ matrix.arch }} && \
-          mv crypto/func ../../artifacts/func-${{ matrix.family }}-${{ matrix.arch }} && \
-          mv lite-client/lite-client ../../artifacts/lite-client-${{ matrix.family }}-${{ matrix.arch }} && \
-          mv rldp-http-proxy/rldp-http-proxy ../../artifacts/rldp-http-proxy-${{ matrix.family }}-${{ matrix.arch }} && \
+          mkdir ../../artifacts
+          mv crypto/fift ../../artifacts/fift-${{ matrix.family }}-${{ matrix.arch }}
+          mv crypto/func ../../artifacts/func-${{ matrix.family }}-${{ matrix.arch }}
+          mv lite-client/lite-client ../../artifacts/lite-client-${{ matrix.family }}-${{ matrix.arch }}
+          mv rldp-http-proxy/rldp-http-proxy ../../artifacts/rldp-http-proxy-${{ matrix.family }}-${{ matrix.arch }}
           cp ../crypto/fift/lib/Asm.fif ../../artifacts/Asm.fif
 
       - name: Pack (Windows)
