@@ -50,19 +50,9 @@ jobs:
 
       - name: Configure Windows
         if: ${{ matrix.family == 'windows' }}
-        # working-directory: ton/build
+        working-directory: ton/build
         run: |
-          set root=%cd%
-          echo %root%
-          cd ton/build
-          cmake .. ^
-            -DCMAKE_TOOLCHAIN_FILE=%root%/vcpkg/scripts/buildsystems/vcpkg.cmake ^
-            -DZLIB_FOUND=1 ^
-            -DZLIB_INCLUDE_DIR=%root%\zlib ^
-            -DZLIB_LIBRARY=%root%\zlib\contrib\vstudio\vc14\x64\ZlibStatReleaseWithoutAsm\zlibstat.lib ^
-            -DCMAKE_CXX_FLAGS="/DTD_WINDOWS=1 /EHsc /bigobj /W0" ^
-            -DTON_USE_ABSEIL=OFF ^
-            -DCMAKE_BUILD_TYPE=Release
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=..\..\vcpkg\scripts\buildsystems\vcpkg.cmake -DZLIB_FOUND=1 -DZLIB_INCLUDE_DIR=..\..\zlib -DZLIB_LIBRARY=..\..\zlib\contrib\vstudio\vc14\x64\ZlibStatReleaseWithoutAsm\zlibstat.lib -DCMAKE_CXX_FLAGS="/DTD_WINDOWS=1 /EHsc /bigobj /W0" -DTON_USE_ABSEIL=OFF
 
       - name: Build
         working-directory: ton/build
