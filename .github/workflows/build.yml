@@ -48,7 +48,12 @@ jobs:
           vcpkg integrate install
           vcpkg install openssl:x64-windows pthread:x64-windows
 
-      - name: Configure Windows
+      - name: Show zlib
+        working-directory: ton/build
+        run: |
+          dir ..\..\zlib\*.lib /a-D /S /B
+
+      - name: Configure (Windows only)
         if: ${{ matrix.family == 'windows' }}
         working-directory: ton/build
         run: |
@@ -76,12 +81,12 @@ jobs:
           mv rldp-http-proxy/rldp-http-proxy ../../artifacts/rldp-http-proxy-${{ matrix.family }}-${{ matrix.arch }}
           cp ../crypto/fift/lib/Asm.fif ../../artifacts/Asm.fif
 
-      - name: Pack (Windows)
+      - name: Pack (Windows only)
         if: ${{ matrix.family == 'windows' }}
         working-directory: ton/build
         run: |
           find tonlib
-          mv tonlib/libtonlibjson.0.5.dll ../../artifacts/libtonlibjson-${{ matrix.family }}-${{ matrix.arch }}.dll
+          mv tonlib/libtonlibjson.0.5.dll ../../artifacts/libtonlibjson-${{ matrix.arch }}.dll
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
@@ -107,5 +112,5 @@ jobs:
   #     - name: Create Release
   #       uses: ncipollo/release-action@v1
   #       with:
-  #         artifacts: "artifacts/ton-linux-amd64/*,artifacts/ton-darwin-amd64/*"
+  #         artifacts: "artifacts/ton-linux-amd64/*,artifacts/ton-darwin-amd64/*,artifacts/ton-windows-amd64/*"
   #         token: ${{ secrets.GITHUB_TOKEN }}
