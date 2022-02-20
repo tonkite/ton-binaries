@@ -8,13 +8,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - display_name: macOS (x86)
-            os: macos-11
-            family: darwin
-            arch: amd64
-          - display_name: Ubuntu (x86)
-            os: ubuntu-20.04
-            family: linux
+          - display_name: Windows (x86)
+            os: windows-2019
+            family: windows
             arch: amd64
     runs-on: ${{ matrix.os }}
     steps:
@@ -25,26 +21,8 @@ jobs:
           git submodule update --init
           mkdir build
 
-      - name: Install prerequisites
-        if: ${{ matrix.family == 'darwin' }}
-        run: |
-          brew install openssl
-
-      - name: Configure macOS
-        if: ${{ matrix.family == 'darwin' && matrix.arch == 'amd64' }}
-        working-directory: ton/build
-        env:
-          CC: clang
-          CXX: clang++
-          OPENSSL_ROOT_DIR: /usr/local/opt/openssl@3
-          CMAKE_OSX_SYSROOT: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/
-        run: |
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -Wno-dev
-
-      - name: Configure Ubuntu
-        if: ${{ matrix.family == 'linux' }}
+      - name: Configure Windows
+        if: ${{ matrix.family == 'windows' }}
         working-directory: ton/build
         env:
           CC: clang
@@ -58,10 +36,6 @@ jobs:
         working-directory: ton/build
         run: |
           cmake --build . \
-            -t fift \
-            -t func \
-            -t lite-client \
-            -t rldp-http-proxy \
             -t tonlibjson
 
       - name: Pack
@@ -74,17 +48,12 @@ jobs:
           mv rldp-http-proxy/rldp-http-proxy ../../artifacts/rldp-http-proxy-${{ matrix.family }}-${{ matrix.arch }} && \
           cp ../crypto/fift/lib/Asm.fif ../../artifacts/Asm.fif
 
-      - name: Pack (macOS)
-        if: ${{ matrix.family == 'darwin' }}
+      - name: Pack (Windows)
+        if: ${{ matrix.family == 'windows' }}
         working-directory: ton/build
         run: |
-          mv tonlib/libtonlibjson.0.5.dylib ../../artifacts/libtonlibjson-${{ matrix.family }}-${{ matrix.arch }}.dylib
-
-      - name: Pack (Ubuntu)
-        if: ${{ matrix.family == 'linux' }}
-        working-directory: ton/build
-        run: |
-          mv tonlib/libtonlibjson.so.0.5 ../../artifacts/libtonlibjson-${{ matrix.family }}-${{ matrix.arch }}.so
+          find tonlib
+          mv tonlib/libtonlibjson.0.5.dll ../../artifacts/libtonlibjson-${{ matrix.family }}-${{ matrix.arch }}.dll
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
@@ -93,22 +62,22 @@ jobs:
           path: artifacts/*
           retention-days: 1
 
-  release:
-    name: Create Release
-    runs-on: ubuntu-20.04
-    needs: build
-    if: github.ref_type == 'tag'
-    steps:
-      - name: Create directory for artifacts
-        run: mkdir artifacts
+  # release:
+  #   name: Create Release
+  #   runs-on: ubuntu-20.04
+  #   needs: build
+  #   if: github.ref_type == 'tag'
+  #   steps:
+  #     - name: Create directory for artifacts
+  #       run: mkdir artifacts
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
+  #     - name: Download all artifacts
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         path: artifacts
 
-      - name: Create Release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "artifacts/ton-linux-amd64/*,artifacts/ton-darwin-amd64/*"
-          token: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Create Release
+  #       uses: ncipollo/release-action@v1
+  #       with:
+  #         artifacts: "artifacts/ton-linux-amd64/*,artifacts/ton-darwin-amd64/*"
+  #         token: ${{ secrets.GITHUB_TOKEN }}
