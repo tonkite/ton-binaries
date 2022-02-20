@@ -1,9 +1,6 @@
 name: Build
 
-on: 
-  push:
-    tags:
-    - '*'
+on: push
 
 jobs:
   build:
@@ -23,8 +20,10 @@ jobs:
     steps:
       - name: Checkout
         run: |
-          git clone https://github.com/newton-blockchain/ton.git && \
-          ( cd ton ; git submodule update --init ; mkdir build )
+          git clone https://github.com/newton-blockchain/ton.git
+          cd ton
+          git submodule update --init
+          mkdir build
 
       - name: Install prerequisites
         if: ${{ matrix.family == 'darwin' }}
@@ -38,21 +37,21 @@ jobs:
           CC: clang
           CXX: clang++
           OPENSSL_ROOT_DIR: /usr/local/opt/openssl@3
+          CMAKE_OSX_SYSROOT: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/
         run: |
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DTON_ARCH= \
-            -Wno-dev \
-            -DOPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3 \
-            -DCMAKE_OSX_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/
+            -Wno-dev
 
       - name: Configure Ubuntu
         if: ${{ matrix.family == 'linux' }}
         working-directory: ton/build
+        env:
+          CC: clang
+          CXX: clang++
         run: |
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DTON_ARCH= \
             -Wno-dev
 
       - name: Build
@@ -62,7 +61,8 @@ jobs:
             -t fift \
             -t func \
             -t lite-client \
-            -t rldp-http-proxy
+            -t rldp-http-proxy \
+            -t tonlibjson
 
       - name: Pack
         working-directory: ton/build
@@ -73,6 +73,18 @@ jobs:
           mv lite-client/lite-client ../../artifacts/lite-client-${{ matrix.family }}-${{ matrix.arch }} && \
           mv rldp-http-proxy/rldp-http-proxy ../../artifacts/rldp-http-proxy-${{ matrix.family }}-${{ matrix.arch }} && \
           cp ../crypto/fift/lib/Asm.fif ../../artifacts/Asm.fif
+
+      - name: Pack (macOS)
+        if: ${{ matrix.family == 'darwin' }}
+        working-directory: ton/build
+        run: |
+          mv tonlib/libtonlibjson.0.5.dylib ../../artifacts/libtonlibjson-${{ matrix.family }}-${{ matrix.arch }}.dylib
+
+      - name: Pack (Ubuntu)
+        if: ${{ matrix.family == 'linux' }}
+        working-directory: ton/build
+        run: |
+          mv tonlib/libtonlibjson.so.0.5 ../../artifacts/libtonlibjson-${{ matrix.family }}-${{ matrix.arch }}.so
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
@@ -85,6 +97,7 @@ jobs:
     name: Create Release
     runs-on: ubuntu-20.04
     needs: build
+    if: github.ref_type == 'tag'
     steps:
       - name: Create directory for artifacts
         run: mkdir artifacts
