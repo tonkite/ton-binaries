@@ -49,9 +49,9 @@ jobs:
           vcpkg install openssl:x64-windows pthread:x64-windows
 
       - name: Show zlib
-        working-directory: ton/build
         run: |
-          dir ..\..\zlib\*.lib /a-D /S /B
+          cd zlib
+          dir *.lib /a-D /S /B
 
       - name: Configure (Windows only)
         if: ${{ matrix.family == 'windows' }}
