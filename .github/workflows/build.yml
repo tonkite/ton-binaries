@@ -20,8 +20,9 @@ jobs:
     steps:
       - name: Checkout
         run: |
-          git clone https://github.com/newton-blockchain/ton.git
+          git clone https://github.com/ton-blockchain/ton.git
           cd ton
+          git checkout master
           git submodule update --init
           mkdir build
 
