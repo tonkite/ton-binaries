@@ -1,6 +1,8 @@
 TON Binaries
 ============
 
+## NOTE: This repository can be treated as an example.
+
 [![Build](https://github.com/tonkite/ton-binaries/actions/workflows/build.yml/badge.svg)](https://github.com/tonkite/ton-binaries/actions/workflows/build.yml)
 
 GitHub Actions pipeline to build tools for TON developers:
